@@ -4,7 +4,7 @@
 	<classpathentry kind="src" path="gen"/>
 	<classpathentry kind="con" path="com.android.ide.eclipse.adt.ANDROID_FRAMEWORK"/>
 	<classpathentry kind="con" path="com.android.ide.eclipse.adt.LIBRARIES"/>
-	<classpathentry exported="true" kind="lib" path="D:/ppbox_1.2.0/build/android/plugins/android/breakpad_util_jni.jar"/>
-	<classpathentry exported="true" kind="lib" path="D:/ppbox_1.2.0/build/android/plugins/android/PpboxJni.jar"/>
+	<classpathentry exported="true" kind="lib" path="libs/breakpad_util_jni.jar"/>
+	<classpathentry exported="true" kind="lib" path="libs/ppbox_jni.jar"/>
 	<classpathentry kind="output" path="bin/classes"/>
 </classpath>

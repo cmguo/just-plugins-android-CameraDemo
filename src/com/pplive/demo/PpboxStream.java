@@ -106,11 +106,11 @@ public class PpboxStream {
 		stream_info.__union2 = 0;
 		stream_info.__union3 = 1;
 		if (VERSION.SDK_INT >= VERSION_CODES.JELLY_BEAN) {
-			stream_info.format_type = 0;
+			stream_info.format_type = 2;
 			stream_info.format_size = 0;
 			stream_info.format_buffer = ByteBuffer.allocateDirect(0);
 		} else {
-			stream_info.format_type = 1;
+			stream_info.format_type = 0;
 			stream_info.format_size = 0;
 			stream_info.format_buffer = ByteBuffer.allocateDirect(0);
 		}
@@ -220,7 +220,7 @@ public class PpboxStream {
 	{
 		if (VERSION.SDK_INT >= VERSION_CODES.JELLY_BEAN) {
 			int index = encoder.dequeueInputBuffer(0);
-			if (index > 0) {
+			if (index >= 0) {
 				return in_buffers[index];
 			} else {
 				return null;
@@ -251,14 +251,30 @@ public class PpboxStream {
 					in_size, 
 					sample.decode_time, 
 					0);
+			buffer.byte_buffer().clear();
 			int index = encoder.dequeueOutputBuffer(buffer_info, 0);
-			if (index > 0) {
+			if (index >= 0) {
 				sample.decode_time = buffer_info.presentationTimeUs;
-				// sample.flags = buffer_info.flags;
+				sample.flags = 0;
+				if (buffer_info.flags != 0) {
+					if (buffer_info.flags == MediaCodec.BUFFER_FLAG_CODEC_CONFIG) {
+						System.out.println("Codec Config " 
+								+ " itrack: " + sample.itrack
+								+ " size: " + buffer_info.size);
+						stream_info.format_size = buffer_info.size;
+						stream_info.format_buffer = out_buffers[index];
+						PPBOX.CaptureSetStream(capture, sample.itrack, stream_info);
+						encoder.releaseOutputBuffer(index, false);
+						return;
+					} else {
+						sample.flags = 1;
+					}
+				}
 				sample.size = buffer_info.size;
 				sample.buffer = out_buffers[index];
-				sample.context = (((long)sample.itrack << 16) | ((long)index)) + 1;
+				//sample.context = (((long)sample.itrack << 16) | ((long)index)) + 1;
 				PPBOX.CapturePutSample(capture, sample);
+				encoder.releaseOutputBuffer(index, false);
 			}
 		} else {
 			sample.buffer = buffer.byte_buffer();

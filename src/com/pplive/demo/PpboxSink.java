@@ -13,6 +13,8 @@ import android.hardware.Camera;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder.AudioSource;
+import android.os.Build.VERSION;
+import android.os.Build.VERSION_CODES;
 
 import com.pplive.sdk.PPBOX;
 import com.pplive.thirdparty.BreakpadUtil;
@@ -31,9 +33,6 @@ public class PpboxSink {
 	
 	private Thread audio_thread;
 	
-	//private long free_index = 0;
-	//private Vector<PPBOX.Sample> samples;
-
 	public static void init(Context c)
 	{
 		File cacheDirFile = c.getCacheDir();
@@ -74,29 +73,28 @@ public class PpboxSink {
 		config.stream_count = 2;
 		config.flags = 2; // multi_thread
 		config.get_sample_buffers = null;
-		config.free_sample = new PPBOX.FreeSampleCallBack() {
-			@Override
-			public boolean invoke(long context) {
-				return PpboxStream.free_sample(context);
-			}
-		};
+		if (VERSION.SDK_INT >= VERSION_CODES.JELLY_BEAN) {
+			config.free_sample = null;
+		} else {
+			config.free_sample = new PPBOX.FreeSampleCallBack() {
+				@Override
+				public boolean invoke(long context) {
+					return PpboxStream.free_sample(context);
+				}
+			};
+		}
 		
 		PPBOX.CaptureInit(capture, config);
 		
 		video_stream = new PpboxStream(capture, 0, camera);
 		
 		audio_stream = new PpboxStream(capture, 1, audio);
-		
-		//audio_duration_ms = audio_info.__union3 * 1000 / audio_info.__union2;
-		
-		//samples = new Vector<PPBOX.Sample>();
 	}
 	
 	public void preview(SurfaceHolder holder)
 	{
 		try {
 			camera.setPreviewDisplay(holder);
-			camera.startPreview();
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (Exception e) {
@@ -113,23 +111,37 @@ public class PpboxSink {
 		audio_stream.start();
 		
 		camera.setPreviewCallbackWithBuffer(new Camera.PreviewCallback() {
+			private final long time_scale = 1000 * 1000 * 1000;
 			private long start_time = System.nanoTime();
+			private int num_total = 0;
+			private int num_drop = 0;
+			private long next_time = 5 * time_scale;
 			@Override
 			public void onPreviewFrame(byte[] data, Camera camera) {
-				//System.out.println("video " + video_sample.decode_time);
+				++num_total;
+				long time = System.nanoTime() - start_time;
 				PpboxStream.InBuffer buffer = video_stream.pop();
 				if (buffer == null) {
-					System.out.println("video drop");
+					++num_drop;
+					//System.out.println("video drop");
 				} else {
 					buffer.byte_buffer().put(data);
-					long time = System.nanoTime() - start_time;
-					//System.out.println("video put time = " + time / 1000 / 1000);
 					video_stream.put(time / 1000, buffer);
+				}
+				if (time >= next_time) {
+					System.out.println("video " 
+						+ " time:" + next_time / time_scale 
+						+ " total: " + num_total 
+						+ " accept: " + (num_total - num_drop)
+						+ " drop: " + num_drop);
+					next_time += 5 * time_scale;
 				}
 				camera.addCallbackBuffer(data);
 			}
 		});
 		
+		camera.startPreview();
+
 		audio_thread = new Thread() {
             @Override
             public void run() {
@@ -142,29 +154,41 @@ public class PpboxSink {
 	
 	private void audio_read_thread()
 	{
-		audio.startRecording();
-		int read_size = audio_stream.buffer_size();
+		final long time_scale = 1000 * 1000 * 1000;
+		final int read_size = audio_stream.buffer_size();
+		final long start_time = System.nanoTime();
+		int num_total = 0;
+		int num_drop = 0;
+		long next_time = 5 * time_scale;
+
 		ByteBuffer drop_buffer = ByteBuffer.allocateDirect(read_size);
+		
+		audio.startRecording();
 		while (!Thread.interrupted()) {
+			long time = System.nanoTime() - start_time;
+			if (time >= next_time) {
+				System.out.println("audio " 
+					+ " time:" + next_time / time_scale 
+					+ " total: " + num_total 
+					+ " accept: " + (num_total - num_drop)
+					+ " drop: " + num_drop);
+				next_time += 5 * time_scale;
+			}
+			++num_total;
 			PpboxStream.InBuffer buffer = audio_stream.pop();
 			if (buffer == null) {
-				System.out.println("audio drop");
+				//System.out.println("audio drop");
 				audio.read(drop_buffer, read_size);
 				audio_stream.drop();
+				++num_drop;
 				continue;
 			}
 			int read = audio.read(buffer.byte_buffer(), read_size);
-			//System.out.println("audio " + audio_write_index);
 			if (read != read_size) {
 				System.out.println("audio.read failed. read = " + read);
 				break;
 			}
 			audio_stream.put(buffer);
-			/*try {
-				Thread.sleep(audio_duration_ms / 2);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}*/
 		}
 		audio.stop();
 	}
@@ -178,18 +202,16 @@ public class PpboxSink {
 			e.printStackTrace();
 		}
 		camera.setPreviewCallbackWithBuffer(null);
+		camera.stopPreview();
 	}
 	
 	public void close()
 	{
-		camera.stopPreview();
 		camera.release();
 		
 		audio.release();
 		
 		PPBOX.CaptureDestroy(capture);
-		
-		//samples = null;
 		
 		video_stream = null;
 		audio_stream = null;
@@ -238,7 +260,7 @@ public class PpboxSink {
 	{
 		Camera.Size ms = sizes.get(0);
 		for (Camera.Size s : sizes) {
-			if (s.width < ms.width || s.height < ms.height) {
+			if (s.width >= 320 && (ms.width < 320 || s.width < ms.width || s.height < ms.height)) {
 				ms = s;
 			}
 		}

@@ -82,7 +82,7 @@ public class PpboxStream {
 			//MediaCodecInfo.CodecCapabilities capabilities = codec.getCapabilitiesForType("video/avc");
 			//int[] clr_fmts = capabilities.colorFormats;
 			MediaFormat format = MediaFormat.createVideoFormat("video/avc", size.width, size.height);
-			format.setInteger(MediaFormat.KEY_BIT_RATE, 125000);
+			format.setInteger(MediaFormat.KEY_BIT_RATE, 200000);
 			format.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar);
 			format.setInteger(MediaFormat.KEY_FRAME_RATE, 15);
 			format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 5);
@@ -155,7 +155,11 @@ public class PpboxStream {
 		} else {
 			stream_info.sub_type = fourcc("PCM0");
 		}
-		stream_info.time_scale = audio.getSampleRate();
+		if (VERSION.SDK_INT >= VERSION_CODES.JELLY_BEAN) {
+			stream_info.time_scale = 1000 * 1000;
+		} else {
+			stream_info.time_scale = audio.getSampleRate();
+		}
 		stream_info.bitrate = 0;
 		stream_info.__union0 = audio.getChannelCount();
 		stream_info.__union1 = 8 * (4 - audio.getAudioFormat());
@@ -179,7 +183,11 @@ public class PpboxStream {
 		sample.time = 0;
 		sample.decode_time = 0;
 		sample.composite_time_delta = 0;
-		sample.duration = stream_info.__union3;
+		if (VERSION.SDK_INT >= VERSION_CODES.JELLY_BEAN) {
+			sample.duration = 0;
+		} else {
+			sample.duration = stream_info.__union3;
+		}
 		sample.size = in_size;
 		sample.buffer = null;
 		sample.context = 0;

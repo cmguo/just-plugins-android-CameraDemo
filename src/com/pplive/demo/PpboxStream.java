@@ -12,7 +12,7 @@ import android.media.MediaFormat;
 import android.os.Build.VERSION;
 import android.os.Build.VERSION_CODES;
 
-import com.pplive.sdk.PPBOX;
+import com.pplive.sdk.JUST;
 
 @SuppressLint("InlinedApi")
 public class PpboxStream {
@@ -64,9 +64,9 @@ public class PpboxStream {
 
 	private int in_size;
 	
-	private PPBOX.StreamInfo stream_info;
+	private JUST.StreamInfo stream_info;
 
-	private PPBOX.Sample sample;
+	private JUST.Sample sample;
 
 	private static PpboxStream[] streams = new PpboxStream[2];
 	
@@ -92,7 +92,7 @@ public class PpboxStream {
 		
 		in_size = pic_size(p);
 		
-		stream_info = new PPBOX.StreamInfo();
+		stream_info = new JUST.StreamInfo();
 		stream_info.type = fourcc("VIDE");
 		if (VERSION.SDK_INT >= VERSION_CODES.JELLY_BEAN) {
 			stream_info.sub_type = fourcc("AVC1");
@@ -115,9 +115,9 @@ public class PpboxStream {
 			stream_info.format_buffer = ByteBuffer.allocateDirect(0);
 		}
 
-		PPBOX.CaptureSetStream(capture, itrack, stream_info);
+		JUST.CaptureSetStream(capture, itrack, stream_info);
 		
-		sample = new PPBOX.Sample();
+		sample = new JUST.Sample();
 		sample.itrack = itrack;
 		sample.flags = 0;
 		sample.time = 0;
@@ -148,7 +148,7 @@ public class PpboxStream {
 				audio.getChannelConfiguration(), 
 				audio.getAudioFormat());
 		
-		stream_info = new PPBOX.StreamInfo();
+		stream_info = new JUST.StreamInfo();
 		stream_info.type = fourcc("AUDI");
 		if (VERSION.SDK_INT >= VERSION_CODES.JELLY_BEAN) {
 			stream_info.sub_type = fourcc("MP4A");
@@ -175,9 +175,9 @@ public class PpboxStream {
 			stream_info.format_buffer = ByteBuffer.allocateDirect(0);
 		}
 
-		PPBOX.CaptureSetStream(capture, itrack, stream_info);
+		JUST.CaptureSetStream(capture, itrack, stream_info);
 		
-		sample = new PPBOX.Sample();
+		sample = new JUST.Sample();
 		sample.itrack = itrack;
 		sample.flags = 0;
 		sample.time = 0;
@@ -271,7 +271,7 @@ public class PpboxStream {
 								+ " size: " + buffer_info.size);
 						stream_info.format_size = buffer_info.size;
 						stream_info.format_buffer = out_buffers[index];
-						PPBOX.CaptureSetStream(capture, sample.itrack, stream_info);
+						JUST.CaptureSetStream(capture, sample.itrack, stream_info);
 						encoder.releaseOutputBuffer(index, false);
 						return;
 					} else {
@@ -281,13 +281,13 @@ public class PpboxStream {
 				sample.size = buffer_info.size;
 				sample.buffer = out_buffers[index];
 				//sample.context = (((long)sample.itrack << 16) | ((long)index)) + 1;
-				PPBOX.CapturePutSample(capture, sample);
+				JUST.CapturePutSample(capture, sample);
 				encoder.releaseOutputBuffer(index, false);
 			}
 		} else {
 			sample.buffer = buffer.byte_buffer();
 			sample.context = (((long)sample.itrack << 16) | ((long)buffer.index())) + 1;
-			PPBOX.CapturePutSample(capture, sample);
+			JUST.CapturePutSample(capture, sample);
 		}
 	}
 	

@@ -16,7 +16,7 @@ import android.media.MediaRecorder.AudioSource;
 import android.os.Build.VERSION;
 import android.os.Build.VERSION_CODES;
 
-import com.pplive.sdk.PPBOX;
+import com.pplive.sdk.JUST;
 import com.pplive.thirdparty.BreakpadUtil;
 
 public class PpboxSink {
@@ -45,18 +45,18 @@ public class PpboxSink {
 		
 		BreakpadUtil.registerBreakpad(tmpDirFile);
 		
-		PPBOX.libPath = libDir;
+		JUST.libPath = libDir;
 		//cacheDir.getAbsolutePath();
-		PPBOX.logPath = tmpDir;
-		PPBOX.logLevel = PPBOX.LEVEL_TRACE;
-		PPBOX.load();
-		PPBOX.StartEngine("161", "12", "111");
+		JUST.logPath = tmpDir;
+		JUST.logLevel = JUST.LEVEL_TRACE;
+		JUST.load();
+		JUST.StartEngine("161", "12", "111");
 	}
 	
 	@SuppressLint("InlinedApi")
 	public void open(String url)
 	{
-		capture = PPBOX.CaptureCreate("andriod", url);
+		capture = JUST.CaptureCreate("andriod", url);
 		
 		camera = Camera.open();
 	    Camera.Parameters p = camera.getParameters();
@@ -69,14 +69,14 @@ public class PpboxSink {
 	    
 		audio = get_audio_record();
 
-		PPBOX.CaptureConfigData config = new PPBOX.CaptureConfigData();
+		JUST.CaptureConfigData config = new JUST.CaptureConfigData();
 		config.stream_count = 2;
 		config.flags = 2; // multi_thread
 		config.get_sample_buffers = null;
 		if (VERSION.SDK_INT >= VERSION_CODES.JELLY_BEAN) {
 			config.free_sample = null;
 		} else {
-			config.free_sample = new PPBOX.FreeSampleCallBack() {
+			config.free_sample = new JUST.FreeSampleCallBack() {
 				@Override
 				public boolean invoke(long context) {
 					return PpboxStream.free_sample(context);
@@ -84,7 +84,7 @@ public class PpboxSink {
 			};
 		}
 		
-		PPBOX.CaptureInit(capture, config);
+		JUST.CaptureInit(capture, config);
 		
 		video_stream = new PpboxStream(capture, 0, camera);
 		
@@ -211,7 +211,7 @@ public class PpboxSink {
 		
 		audio.release();
 		
-		PPBOX.CaptureDestroy(capture);
+		JUST.CaptureDestroy(capture);
 		
 		video_stream = null;
 		audio_stream = null;
